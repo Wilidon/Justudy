@@ -38,7 +38,8 @@ public class UserController {
     @JsonView(AuthController.class)
     public ResponseEntity getProfile(@RequestParam("token") String token) {
         try {
-            Map<String, Object> tokenResult = TokenUtils.checkToken(token);
+            TokenUtils tokenUtils = new TokenUtils();
+            Map<String, Object> tokenResult = tokenUtils.checkToken(token);
             if ((int) tokenResult.get("status") == 2) {
                 return new ResponseEntity(HttpStatus.UNAUTHORIZED);
             }
@@ -56,7 +57,8 @@ public class UserController {
     @GetMapping("/getUserCourse")
     public ResponseEntity getUserCourse(@RequestParam("token") String token) {
         try {
-            Map<String, Object> tokenResult = TokenUtils.checkToken(token);
+            TokenUtils tokenUtils = new TokenUtils();
+            Map<String, Object> tokenResult = tokenUtils.checkToken(token);
             if ((int) tokenResult.get("status") == 2) {
                 return new ResponseEntity(HttpStatus.UNAUTHORIZED);
             }
@@ -84,7 +86,8 @@ public class UserController {
                                      @RequestParam("token") String token) {
         // TODO переделать под post запрос
         try {
-            Map<String, Object> tokenResult = TokenUtils.checkToken(token);
+            TokenUtils tokenUtils = new TokenUtils();
+            Map<String, Object> tokenResult = tokenUtils.checkToken(token);
             if ((int) tokenResult.get("status") == 2) {
                 return new ResponseEntity(HttpStatus.UNAUTHORIZED);
             }
@@ -106,7 +109,8 @@ public class UserController {
     public ResponseEntity unjoinCourse(@RequestParam("course_id") int course_id,
                                        @RequestParam("token") String token) {
         try {
-            Map<String, Object> tokenResult = TokenUtils.checkToken(token);
+            TokenUtils tokenUtils = new TokenUtils();
+            Map<String, Object> tokenResult = tokenUtils.checkToken(token);
             if ((int) tokenResult.get("status") == 2) {
                 return new ResponseEntity(HttpStatus.UNAUTHORIZED);
             }

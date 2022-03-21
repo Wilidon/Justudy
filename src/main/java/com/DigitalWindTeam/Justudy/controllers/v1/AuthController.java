@@ -36,7 +36,8 @@ public class AuthController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         User new_user = authDAO.register(user);
-        String token = TokenUtils.getToken(new_user.getId());
+        TokenUtils tokenUtils = new TokenUtils();
+        String token = tokenUtils.getToken(new_user.getId());
 
         new_user.setToken(token);
         return new ResponseEntity(new_user, HttpStatus.OK);
@@ -52,7 +53,8 @@ public class AuthController {
         if (user == null) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-        String token = TokenUtils.getToken(user.getId());
+        TokenUtils tokenUtils = new TokenUtils();
+        String token = tokenUtils.getToken(user.getId());
         user.setToken(token);
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
@@ -69,7 +71,8 @@ public class AuthController {
     @ApiOperation(value = "Проверяет Token на валидность", response = Boolean.class)
     public Boolean checkValid(@RequestBody Map<String, String> message) {
         try {
-            Map<String, Object> result = TokenUtils.checkToken(message.get("token"));
+            TokenUtils tokenUtils = new TokenUtils();
+            Map<String, Object> result = tokenUtils.checkToken(message.get("token"));
             return (int) result.get("status") == 0;
         } catch (ParseException | JOSEException e) {
             return false;

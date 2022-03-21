@@ -11,17 +11,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TokenUtils {
-    private static final byte[] secret = "DigitalWindSecretKey0ZxmnhfeHafesfdja".getBytes();
+    private final byte[] secret = "".getBytes();
 
     // Возвращаем новый токен
-    public static String getToken(int id) {
+    public String getToken(int id) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", id); // uid
         map.put("sta", new Date().getTime()); // время генерации
         map.put("exp", new Date().getTime() + (1000 * 60 * 60 * 24)); // время истечения
         String token = null;
         try {
-            token = TokenUtils.creatToken(map);
+            TokenUtils tokenUtils = new TokenUtils();
+            token = tokenUtils.creatToken(map);
         } catch (JOSEException e) {
             e.printStackTrace();
         }
@@ -29,7 +30,7 @@ public class TokenUtils {
     }
 
     // Генерируем токен
-    public static String creatToken(Map<String,Object> payloadMap) throws JOSEException {
+    public String creatToken(Map<String,Object> payloadMap) throws JOSEException {
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS256);
 
         // Создать полезную нагрузку
@@ -47,7 +48,7 @@ public class TokenUtils {
         // Генерируем токен
         return jwsObject.serialize();
     }
-    public static Map<String,Object> checkToken(String token) throws ParseException, JOSEException {
+    public Map<String,Object> checkToken(String token) throws ParseException, JOSEException {
         // Разобрать токен
 
         JWSObject jwsObject = JWSObject.parse(token);
