@@ -1,29 +1,41 @@
 package com.DigitalWindTeam.Justudy.models;
 
-import com.DigitalWindTeam.Justudy.controllers.v1.AuthController;
-import com.fasterxml.jackson.annotation.JsonView;
+import javax.persistence.*;
+import java.util.List;
 
+@Entity
+@Table(name = "users")
 public class User {
-    @JsonView(AuthController.class)
-    private int id;
-    @JsonView(AuthController.class)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "name")
     private String name;
-    @JsonView(AuthController.class)
+
+    @Column(name = "surname")
     private String surname;
-    @JsonView(AuthController.class)
+
+    @Column(name = "email", unique = true)
     private String email;
-    @JsonView(AuthController.class)
+
+    @Column(name = "phone")
     private String phone;
+
+    @Column(name = "password")
     private String password;
-    private String ip;
-    @JsonView(AuthController.class)
+
     private String token;
 
-    public int getId() {
+
+    public User() {
+    }
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -66,14 +78,6 @@ public class User {
         this.phone = phone;
     }
 
-    public String getIp() {
-        return ip;
-    }
-
-    public void setIp(String ip) {
-        this.ip = ip;
-    }
-
     public String getToken() {
         return token;
     }
@@ -81,4 +85,7 @@ public class User {
     public void setToken(String token) {
         this.token = token;
     }
+
+
+
 }

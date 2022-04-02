@@ -1,11 +1,11 @@
 package com.DigitalWindTeam.Justudy.controllers.v1;
 
-import com.DigitalWindTeam.Justudy.models.User;
-import com.DigitalWindTeam.Justudy.models.UserCourses;
-import com.DigitalWindTeam.Justudy.sql.CourseDAO;
-import com.DigitalWindTeam.Justudy.sql.UserDAO;
+import com.DigitalWindTeam.Justudy.models.*;
+import com.DigitalWindTeam.Justudy.repository.CourseRepository;
+import com.DigitalWindTeam.Justudy.repository.UserCourseProgressRepository;
+import com.DigitalWindTeam.Justudy.repository.UserCoursesRepository;
+import com.DigitalWindTeam.Justudy.repository.UserRepository;
 import com.DigitalWindTeam.Justudy.utils.TokenUtils;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.shaded.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,31 +14,35 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
+import java.util.*;
 
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*")
-@RequestMapping("/v1")
+@RequestMapping("/v1/user")
 public class UserController {
 
-    private final UserDAO userDAO;
-    private final CourseDAO courseDAO;
+    private final UserRepository userRepository;
+    private final UserCoursesRepository userCoursesRepository;
+    private final CourseRepository courseRepository;
+    private final UserCourseProgressRepository userCourseProgressRepository;
+    private final TokenUtils tokenUtils;
 
     @Autowired
-    public UserController(UserDAO userDAO, CourseDAO courseDAO) {
-        this.userDAO = userDAO;
-        this.courseDAO = courseDAO;
+    public UserController(UserRepository userRepository,
+                          UserCoursesRepository userCoursesRepository,
+                          CourseRepository courseRepository,
+                          UserCourseProgressRepository userCourseProgressRepository,
+                          TokenUtils tokenUtils) {
+        this.userRepository = userRepository;
+        this.userCoursesRepository = userCoursesRepository;
+        this.courseRepository = courseRepository;
+        this.userCourseProgressRepository = userCourseProgressRepository;
+        this.tokenUtils = tokenUtils;
     }
 
     @GetMapping("/profile")
-    @JsonView(AuthController.class)
     public ResponseEntity getProfile(@RequestParam("token") String token) {
         try {
-            TokenUtils tokenUtils = new TokenUtils();
             Map<String, Object> tokenResult = tokenUtils.checkToken(token);
             if ((int) tokenResult.get("status") == 2) {
                 return new ResponseEntity(HttpStatus.UNAUTHORIZED);
@@ -47,17 +51,28 @@ public class UserController {
                 return new ResponseEntity(HttpStatus.BAD_GATEWAY); // check
             }
             JSONObject jsonObject = (JSONObject) tokenResult.get("data");
-            int user_id = jsonObject.getAsNumber("id").intValue();
-            return new ResponseEntity(userDAO.getUser(user_id), HttpStatus.OK);
+            long user_id = jsonObject.getAsNumber("id").longValue();
+
+            Map<String, Object> resp = new HashMap<>();
+            Optional<User> user = userRepository.findById(user_id);
+            resp.put("profile", user);
+
+            List<UserCourse> userCourse = userCoursesRepository.findByUserId(user_id);
+            List<Course> list = new ArrayList<>();
+            for (UserCourse userCourse1 : userCourse) {
+                list.add(courseRepository.findById(userCourse1.getCourseId()));
+            }
+            resp.put("course", list);
+            return new ResponseEntity(resp, HttpStatus.OK);
         } catch (ParseException | JOSEException e) {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("/getUserCourse")
-    public ResponseEntity getUserCourse(@RequestParam("token") String token) {
+    public ResponseEntity getUserCourse(@RequestParam("course_id") long course_id,
+                                        @RequestParam("token") String token) {
         try {
-            TokenUtils tokenUtils = new TokenUtils();
             Map<String, Object> tokenResult = tokenUtils.checkToken(token);
             if ((int) tokenResult.get("status") == 2) {
                 return new ResponseEntity(HttpStatus.UNAUTHORIZED);
@@ -66,67 +81,121 @@ public class UserController {
                 return new ResponseEntity(HttpStatus.BAD_REQUEST);
             }
             JSONObject jsonObject = (JSONObject) tokenResult.get("data");
-            int user_id = jsonObject.getAsNumber("id").intValue();
-            List<UserCourses> userCourses = userDAO.getUserCourse(user_id);
-            List<Object> list = new ArrayList<>();
-            for (UserCourses userCourses1 : userCourses) {
-                list.add(courseDAO.getCourse(userCourses1.getCourse_id()));
-            }
+            long user_id = jsonObject.getAsNumber("id").intValue();
             Map<String, Object> resp = new HashMap<>();
-            resp.put("courses", list);
-            resp.put("user_id", user_id);
 
-            return new ResponseEntity(resp, HttpStatus.OK);
+            UserCourse userCourse = userCoursesRepository.findByUserIdAndCourseId(user_id, course_id);
+
+
+            return new ResponseEntity(userCourse, HttpStatus.OK);
         } catch (ParseException | JOSEException e) {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
     }
+
     @GetMapping("/joinCourse")
-    public ResponseEntity joinCourse(@RequestParam("course_id") int course_id,
+    public ResponseEntity joinCourse(@RequestParam("course_id") long course_id,
                                      @RequestParam("token") String token) {
         // TODO переделать под post запрос
         try {
-            TokenUtils tokenUtils = new TokenUtils();
             Map<String, Object> tokenResult = tokenUtils.checkToken(token);
             if ((int) tokenResult.get("status") == 2) {
-                return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             if ((int) tokenResult.get("status") == 1) {
-                return new ResponseEntity(HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
             JSONObject jsonObject = (JSONObject) tokenResult.get("data");
-            int user_id = jsonObject.getAsNumber("id").intValue();
-            UserCourses userCourses = userDAO.joinCourse(user_id, course_id);
-            if (userCourses == null) {
-                return new ResponseEntity(HttpStatus.BAD_REQUEST);
+            long user_id = jsonObject.getAsNumber("id").intValue();
+            UserCourse user = userCoursesRepository.findByUserIdAndCourseId(user_id, course_id);
+            if (user != null) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
-            return new ResponseEntity(userCourses, HttpStatus.OK);
+            // +1 участник курса
+            courseRepository.updateParticipants(course_id);
+
+            UserCourse userCourses = new UserCourse();
+            userCourses.setUserId(user_id);
+            userCourses.setCourseId(course_id);
+            userCourses.setStatus("started");
+            user = userCoursesRepository.save(userCourses);
+            return new ResponseEntity<>(user, HttpStatus.OK);
         } catch (ParseException | JOSEException e) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
-    @GetMapping("/unjoinCourse")
-    public ResponseEntity unjoinCourse(@RequestParam("course_id") int course_id,
-                                       @RequestParam("token") String token) {
+
+    @PatchMapping("/profile")
+    public ResponseEntity updateProfile(@RequestBody User user) {
         try {
-            TokenUtils tokenUtils = new TokenUtils();
-            Map<String, Object> tokenResult = tokenUtils.checkToken(token);
+            Map<String, Object> tokenResult = tokenUtils.checkToken(user.getToken());
             if ((int) tokenResult.get("status") == 2) {
-                return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
             if ((int) tokenResult.get("status") == 1) {
-                return new ResponseEntity(HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
             JSONObject jsonObject = (JSONObject) tokenResult.get("data");
-            int user_id = jsonObject.getAsNumber("id").intValue();
-            UserCourses userCourses = userDAO.unjoinCourse(user_id, course_id);
-            if (userCourses == null) {
-                return new ResponseEntity(HttpStatus.BAD_REQUEST);
+            long user_id = jsonObject.getAsNumber("id").intValue();
+            if (user.getEmail().length() > 32 ||
+                    user.getName().length() > 32 ||
+                    user.getPhone().length() > 15 ||
+                    user.getSurname().length() > 32) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
-            return new ResponseEntity(userCourses, HttpStatus.OK);
+            if (!(user.getEmail() == null)) {
+                userRepository.udpateEmail(user.getEmail(), user_id);
+            }
+            if (!(user.getPhone() == null)) {
+                userRepository.udpatePhone(user.getPhone(), user_id);
+            }
+            if (!(user.getSurname() == null)) {
+                userRepository.udpateSurname(user.getSurname(), user_id);
+            }
+            if (!(user.getName() == null)) {
+                userRepository.udpateName(user.getName(), user_id);
+            }
+            if (!(user.getPassword() == null)) {
+                userRepository.udpatePassword(user.getPassword(), user_id);
+            }
+            return new ResponseEntity(HttpStatus.OK);
         } catch (ParseException | JOSEException e) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
+
+
+    // @GetMapping("/getCourse")
+
+
+//    @GetMapping("/unjoinCourse")
+//    public ResponseEntity unjoinCourse(@RequestParam("course_id") int course_id,
+//                                       @RequestParam("token") String token) {
+//        try {
+//            Map<String, Object> tokenResult = tokenUtils.checkToken(token);
+//            if ((int) tokenResult.get("status") == 2) {
+//                return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+//            }
+//            if ((int) tokenResult.get("status") == 1) {
+//                return new ResponseEntity(HttpStatus.BAD_REQUEST);
+//            }
+//            JSONObject jsonObject = (JSONObject) tokenResult.get("data");
+//            long user_id = jsonObject.getAsNumber("id").intValue();
+//            UserCourses user = userCoursesRepository.findByUserIdAndCourseId(user_id, course_id);
+//            if (user != null) {
+//                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+//            }
+//            UserCourses userCourses = new UserCourses();
+//            userCourses.setUserId(user_id);
+//            userCourses.setCourseId(course_id);
+//            userCourses.setStatus("started");
+//            user = userCoursesRepository.save(userCourses);
+//            return new ResponseEntity<>(user, HttpStatus.OK);
+//            return new ResponseEntity(userCourses, HttpStatus.OK);
+//        } catch (ParseException | JOSEException e) {
+//            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+//        }
+//}
+
 
 }

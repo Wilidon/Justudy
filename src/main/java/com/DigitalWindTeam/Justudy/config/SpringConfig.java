@@ -1,5 +1,6 @@
 package com.DigitalWindTeam.Justudy.config;
 
+import com.DigitalWindTeam.Justudy.utils.TokenUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
@@ -25,34 +26,17 @@ public class SpringConfig {
 
     private final ApplicationContext applicationContext;
 
-    @Value("${jdbc.url}")
-    private String url;
-    @Value("${jdbc.username}")
-    private String username;
-    @Value("${jdbc.password}")
-    private String password;
-
     @Autowired
     public SpringConfig(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 
 
+    @Value("${jwt.secret}")
+    private String secret;
     @Bean
-    public DataSource dataSource() {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-
-        dataSource.setDriverClassName("org.postgresql.Driver");
-        dataSource.setUrl(url);
-        dataSource.setUsername(username);
-        dataSource.setPassword(password);
-
-        return dataSource;
-    }
-
-    @Bean
-    public JdbcTemplate jdbcTemplate() {
-        return new JdbcTemplate(dataSource());
+    public TokenUtils tokenUtils() {
+        return new TokenUtils(secret);
     }
 
     //Swagger link: http://localhost:8080/swagger-ui.html
@@ -60,21 +44,9 @@ public class SpringConfig {
     @Bean
     public Docket docket() {
         return new Docket(DocumentationType.SWAGGER_2)
-                .apiInfo(apiDeatils())
                 .select()
                 .apis(RequestHandlerSelectors.basePackage("com.DigitalWindTeam.Justudy"))
                 .paths(PathSelectors.any())
                 .build();
-    }
-
-
-    @SuppressWarnings({ "deprecation", "unused" })
-    private ApiInfo apiDeatils() {
-        return new ApiInfo("title",
-                "description",
-                "version",
-                "termsOfServiceUrl",
-                "termsOfServiceUrl", "license",
-                "licenseUrl");
     }
 }

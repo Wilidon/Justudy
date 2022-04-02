@@ -1,0 +1,13 @@
+jwt.secret=
+
+spring.datasource.url=jdbc:postgresql://ip:5432/db
+spring.datasource.username=postgres
+spring.datasource.password=qwerty
+spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+spring.jpa.hibernate.ddl-auto=update
+
+server.tomcat.remote_ip_header=x-forwarded-for
+server.tomcat.protocol_header=x-forwarded-proto
+

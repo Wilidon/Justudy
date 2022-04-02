@@ -11,59 +11,44 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TokenUtils {
-    private final byte[] secret = "".getBytes();
+    private final byte[] secret;
+
+    public TokenUtils(String secret) {
+        this.secret = secret.getBytes();
+    }
 
     // Возвращаем новый токен
-    public String getToken(int id) {
+    public String getToken(long id) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", id); // uid
-        map.put("sta", new Date().getTime()); // время генерации
-        map.put("exp", new Date().getTime() + (1000 * 60 * 60 * 24)); // время истечения
+        map.put("start", new Date().getTime()); // время генерации
+        map.put("expires", new Date().getTime() + (1000 * 60 * 60 * 24)); // время истечения. 24h
         String token = null;
         try {
-            TokenUtils tokenUtils = new TokenUtils();
-            token = tokenUtils.creatToken(map);
+            token = creatToken(map);
         } catch (JOSEException e) {
             e.printStackTrace();
         }
         return token;
     }
 
+
     // Генерируем токен
     public String creatToken(Map<String,Object> payloadMap) throws JOSEException {
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS256);
-
-        // Создать полезную нагрузку
         Payload payload = new Payload(new JSONObject(payloadMap));
-
-        // Объединяем голову и груз вместе
         JWSObject jwsObject = new JWSObject(jwsHeader, payload);
-
-        // Создать ключ
         JWSSigner jwsSigner = new MACSigner(secret);
-
-        //подпись
         jwsObject.sign(jwsSigner);
-
-        // Генерируем токен
         return jwsObject.serialize();
     }
     public Map<String,Object> checkToken(String token) throws ParseException, JOSEException {
-        // Разобрать токен
-
         JWSObject jwsObject = JWSObject.parse(token);
-
-        // Получить груз
         Payload payload=jwsObject.getPayload();
-
-        // Создать ключ разблокировки
         JWSVerifier jwsVerifier = new MACVerifier(secret);
-
         Map<String, Object> resultMap = new HashMap<>();
-        // Токен суждения
         if (jwsObject.verify(jwsVerifier)) {
             resultMap.put("status", 0); // ok
-            // Данные полезной нагрузки анализируются в объекте json.
             JSONObject jsonObject = (JSONObject) payload.toJSONObject();
             resultMap.put("data", jsonObject);
 
@@ -76,7 +61,6 @@ public class TokenUtils {
                     // уже истек
                     resultMap.clear();
                     resultMap.put("status", 2); // Истек срок действия.
-
                 }
             }
         }else {
