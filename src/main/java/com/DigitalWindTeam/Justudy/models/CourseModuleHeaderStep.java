@@ -16,6 +16,9 @@ public class CourseModuleHeaderStep {
     @Column(name = "description", length = 50000)
     private String description;
 
+    @Column(name = "levelName")
+    private String levelName;
+
     @Column(name = "status")
     private Boolean status;
 
@@ -41,6 +44,14 @@ public class CourseModuleHeaderStep {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getLevelName() {
+        return levelName;
+    }
+
+    public void setLevelName(String levelName) {
+        this.levelName = levelName;
     }
 
     public void setDescription(String description) {
